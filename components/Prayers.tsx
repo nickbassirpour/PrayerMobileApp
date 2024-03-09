@@ -1,4 +1,5 @@
 import { FlatList, StyleSheet, Text, View } from "react-native";
+import { Link } from "expo-router";
 import React from "react";
 import { PRAYERS_LIST } from "../data/constants";
 import {
@@ -30,12 +31,14 @@ const Prayers = () => {
         showsHorizontalScrollIndicator={false}
         renderItem={({ item }) => (
           <View style={styles.prayerCardView}>
-            <View style={styles.prayerCard}>
-              <Text style={styles.prayerCardTitle}></Text>
-            </View>
-            <View style={styles.prayerCardText}>
-              <Text style={styles.prayerCardTitle}>{item.title}</Text>
-            </View>
+            <Link href="home/SOD/stBrigid">
+              <View style={styles.prayerCard}>
+                <Text style={styles.prayerCardTitle}></Text>
+              </View>
+              <View style={styles.prayerCardText}>
+                <Text style={styles.prayerCardTitle}>{item.title}</Text>
+              </View>
+            </Link>
           </View>
         )}
       />

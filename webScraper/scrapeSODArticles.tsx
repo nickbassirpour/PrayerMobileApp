@@ -28,8 +28,30 @@ getArticleHTML().then((res) => {
     scrapedArticle = scrapedArticle.substring(0, startIndex);
   }
 
-  scrapedArticle = scrapedArticle.replace("607", "550");
-  scrapedArticle = scrapedArticle.replace("arial,helvetica", "");
+  $("[width]").each((index, element) => {
+    const widthValue = $(element).attr("width");
+
+    if (!isNaN(widthValue)) {
+      const newWidth = parseFloat(widthValue) * 0.6;
+
+      $(element).attr("width", newWidth);
+    }
+  });
+
+  $("[size]").each((index, element) => {
+    const sizeValue = $(element).attr("size");
+
+    if (!isNaN(sizeValue)) {
+      const newSize = sizeValue - 1;
+
+      $(element).attr("size", newSize);
+    }
+  });
+
+  $("font:not([size])").each((index, element) => {
+    $(element).attr("size", 2);
+  });
+
   scrapedArticle = scrapedArticle.replace("–", "&ndash;");
   scrapedArticle = scrapedArticle.replace("ê", "&ecirc;");
   scrapedArticle = scrapedArticle.replace("“", "&ldquo;");

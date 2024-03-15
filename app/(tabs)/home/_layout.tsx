@@ -16,7 +16,7 @@ export default function StackLayout() {
         name="[category]"
         options={{
           headerTitle: `${category}`,
-          headerShown: true,
+          headerShown: false,
         }}
       />
     </Stack>

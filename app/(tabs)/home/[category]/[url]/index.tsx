@@ -1,26 +1,26 @@
 import {
   View,
   Text,
-  useWindowDimensions,
-  Image,
   Linking,
-  Alert,
+  Dimensions,
+  ScrollView,
+  Pressable,
 } from "react-native";
-import React, { useCallback } from "react";
-import { useLocalSearchParams } from "expo-router";
-import WebView from "react-native-webview";
-// import htmlFinder from "../../../../../data/articles/SOD/j197sd_FrancisAssisr_10-04.js";
+import { useLocalSearchParams, Link, router } from "expo-router";
+import React from "react";
+// import WebView from "react-native-webview";
+import AutoHeightWebView from "../../../../../components/AutoHeightWebView";
+import { StatusBar } from "expo-status-bar";
+import { SafeAreaView } from "react-native-safe-area-context";
+// import WebView from "react-native-autoheight-webview";
 
-const Article = ({ saintURL }) => {
-  // let html = "../../../../../data/articles/SOD/j197sd_FrancisAssisr_10-04.js";
+const Article = () => {
   const { category, url } = useLocalSearchParams();
-  // const { width } = useWindowDimensions();
 
-  // let html = htmlFinder("j197sd_FrancisAssisr_10-04.js");
+  const goBack = () => {
+    router.back();
+  };
 
-  // // const article = `../../../../../data/articles/SOD/j197sd_FrancisAssisr_10-04.html`;
-  // // let article = `../../../../../data/articles/`;
-  // //SOD/j197sd_FrancisAssisr_10-04.html
   let article;
   if (category === "SOD" && url === "j197sd_FrancisAssisr_10-04") {
     article = require(`../../../../../data/articles/SOD/j197sd_FrancisAssisr_10-04.html`);
@@ -33,28 +33,101 @@ const Article = ({ saintURL }) => {
   }
 
   return (
-    <View
-      style={{
-        flex: 1,
-      }}
+    <ScrollView
+      // style={{ flex: 1, backgroundColor: "white" }}
+      contentContainerStyle={
+        {
+          // flexGrow: 1,
+        }
+      }
     >
-      <WebView
-        originWhitelist={["*"]}
-        source={article}
-        scrollEnabled={true}
-        onShouldStartLoadWithRequest={(request) => {
-          if (!request.url.includes(`${url}`)) {
-            Linking.openURL(request.url);
-            return false;
-          }
-          return true;
-        }}
+      <StatusBar />
+      <View
         style={{
           flex: 1,
-          border: 10,
+          flexDirection: "column",
+          backgroundColor: "white",
+          paddingTop: 40,
         }}
-      />
-    </View>
+      >
+        <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
+          <View
+            style={{
+              marginHorizontal: 20,
+              marginTop: 10,
+              padding: 10,
+              borderWidth: 1,
+              borderRadius: 25,
+            }}
+          >
+            <Pressable onPress={goBack}>
+              <Text>Back</Text>
+            </Pressable>
+          </View>
+          <View
+            style={{
+              marginHorizontal: 20,
+              marginTop: 10,
+              padding: 10,
+            }}
+          >
+            <Text>Saint of the Day</Text>
+          </View>
+          <View
+            style={{
+              marginHorizontal: 20,
+              marginTop: 10,
+              padding: 10,
+              borderWidth: 1,
+              borderRadius: 25,
+            }}
+          >
+            <Text>Next</Text>
+          </View>
+        </View>
+        <AutoHeightWebView originWhitelist={["*"]} source={article} />
+        {/* <WebView
+          originWhitelist={["*"]}
+          source={article}
+          onShouldStartLoadWithRequest={(request) => {
+            if (!request.url.includes(`${url}`)) {
+              Linking.openURL(request.url);
+              return false;
+            }
+            return true;
+          }}
+          style={{
+            flex: 1,
+            paddingTop: 35,
+            width: Dimensions.get("window").width,
+          }}
+          scrollEnabled={false}
+        /> */}
+        <View
+          style={{
+            flex: 1,
+            flexDirection: "column",
+            alignItems: "center",
+          }}
+        >
+          <View style={{ paddingBottom: 10 }}>
+            <Text style={{ fontSize: 20 }}>Related Articles</Text>
+          </View>
+          <View style={{ paddingBottom: 10 }}>
+            <Text>Article 1</Text>
+          </View>
+          <View style={{ paddingBottom: 10 }}>
+            <Text>Article 1</Text>
+          </View>
+          <View style={{ paddingBottom: 10 }}>
+            <Text>Article 1</Text>
+          </View>
+          <View style={{ paddingBottom: 10 }}>
+            <Text>Article 1</Text>
+          </View>
+        </View>
+      </View>
+    </ScrollView>
   );
 };
 

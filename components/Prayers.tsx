@@ -31,14 +31,15 @@ const Prayers = () => {
         showsHorizontalScrollIndicator={false}
         renderItem={({ item }) => (
           <View style={styles.prayerCardView}>
-            <Link href="home/SOD/stBrigid">
+            {/* <Link href="home/SOD/stBrigid"> */}
+            <View>
               <View style={styles.prayerCard}>
                 <Text style={styles.prayerCardTitle}></Text>
               </View>
               <View style={styles.prayerCardText}>
                 <Text style={styles.prayerCardTitle}>{item.title}</Text>
               </View>
-            </Link>
+            </View>
           </View>
         )}
       />

@@ -1,4 +1,4 @@
-export default SODList = [
+SODList = [
   {
     month: "January",
     date: "January 1",
@@ -2705,3 +2705,5 @@ export default SODList = [
     link: "https://traditioninaction.org/SOD/j054sdSylvester12-31.htm",
   },
 ];
+
+module.exports = SODList;

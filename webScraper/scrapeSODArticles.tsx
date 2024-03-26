@@ -5,31 +5,13 @@ const fs2 = require("fs");
 const path = require("path");
 
 const homeURL = "https://traditioninaction.org";
-const SODArticle = "https://traditioninaction.org/SOD/j247sd_OLSnow_08_05.html";
-
-const findForwardSlashes = (stringURL) => {
-  let count = 0;
-  let slashes = {
-    firstSlash: 0,
-    secondSlash: 0,
-  };
-  for (let i = 0; i < stringURL.length; i++) {
-    if (stringURL[i] === "/") {
-      count++;
-    }
-    if (count === 2) {
-      slashes.firstSlash = i + 2;
-    }
-    if (count === 3) {
-      slashes.secondSlash = i + 1;
-    }
-  }
-  return slashes;
-};
+const SODArticle = "https://traditioninaction.org/SOD/j065sdStJoseph3-19.htm";
+// const SODArticle =
+//   "https://traditioninaction.org/OrganicSociety/A_104_Family_1.html";
 
 const findCategory = (stringURL) => {
-  const slashes = findForwardSlashes(stringURL);
-  return stringURL.substring(slashes.firstSlash, slashes.secondSlash);
+  let category = stringURL.split("/")[3];
+  return category;
 };
 
 let category = findCategory(SODArticle);
@@ -72,7 +54,7 @@ function extractFileName(imageUrl) {
   return folders[1];
 }
 
-async function getArticleHTML() {
+async function adjustSizesAndFixURL() {
   const { data: html } = await axios2.get(SODArticle);
   const $ = cheerio2.load(html);
 
@@ -112,6 +94,27 @@ async function getArticleHTML() {
     return $(element).attr("size", 2);
   });
 
+  // let relatedTopics = [];
+  // let relatedTopicsElement = $('center:contains("Related Topics of Interest")');
+  // let $relatedTopicsElement = cheerio2.load(relatedTopicsElement.html());
+  // $relatedTopicsElement("a").each((index, element) => {
+  //   const relatedTopicsObject = {
+  //     href: "",
+  //     title: "",
+  //   };
+  //   const $element = $(element);
+  //   const uneditedHREF = $element.attr("href");
+  //   relatedTopicsObject.title = $element.text();
+  //   if (uneditedHREF.includes("/")) {
+  //     relatedTopicsObject.href =
+  //       "../../../../../data/articles/" + uneditedHREF.replace("../", "");
+  //   } else {
+  //     relatedTopicsObject.href =
+  //       "../../../../../data/articles/" + category + "/" + uneditedHREF;
+  //   }
+  //   relatedTopics.push(relatedTopicsObject);
+  // });
+
   $("[href]").each((index, element) => {
     const $element = $(element);
     let newHref = $element.attr("href");
@@ -140,44 +143,154 @@ async function getArticleHTML() {
   return $.html();
 }
 
-async function adjustArticleHTML() {
-  const modifiedHTML = await getArticleHTML();
+async function getRelatedArticles() {
+  const adjustedHTML = await adjustSizesAndFixURL();
 
-  const $ = cheerio2.load(modifiedHTML);
+  const $ = cheerio2.load(adjustedHTML);
 
-  const textArray = $.text().split(" ");
-  const selectionIndex = textArray.indexOf("selection:");
-  const slicedText = textArray.slice(selectionIndex + 1).join(" ");
-  const periodIndex = slicedText.split("").indexOf(".");
-  const firstSentence = slicedText
+  let relatedTopics = [];
+  let relatedTopicsObject = {
+    href: "",
+    title: "",
+  };
+  let relatedTopicsIndex = $.html().indexOf("Related Topics of Interest");
+  if (relatedTopicsIndex) {
+    let relatedTopicsSection = $.html().substring(relatedTopicsIndex);
+    let $relatedtopicsSection = cheerio2.load(relatedTopicsSection);
+    $relatedtopicsSection("a").each((index, element) => {
+      if (!$(element).text()) {
+        return;
+      }
+      if (
+        $(element).text().includes("Home") ||
+        $(element).text().includes("Books") ||
+        $(element).text().includes("CDs") ||
+        $(element).text().includes("Search") ||
+        $(element).text().includes("Contact Us") ||
+        $(element).text().includes("Donate")
+      ) {
+        return;
+      }
+      relatedTopics.push({
+        text: $(element).text().replace(` \n`, ""),
+        href: $(element)
+          .attr("href")
+          .replace(
+            "https://traditioninaction.org",
+            "../../../../../data/articles"
+          ),
+      });
+    });
+    relatedTopics.pop();
+    console.log(relatedTopics);
+  }
+
+  return;
+  if (relatedTopicsElement.length > 0) {
+    relatedTopicsElement.nextAll().each((index, sibling) => {
+      console.log(sibling);
+      if ($(sibling).is("div") || $(sibling).is("center")) {
+        return false;
+      }
+
+      if ($(sibling).is("a")) {
+        relatedTopics.push({
+          text: $(sibling).text(),
+          href: $(sibling).attr("href"),
+        });
+      }
+    });
+    console.log(relatedTopics);
+  } else {
+    console.log("Related Topics of Interest not found");
+  }
+  return;
+  if (relatedTopicsElement) {
+    let $relatedTopicsElement = cheerio2.load(relatedTopicsElement.html());
+    $relatedTopicsElement("a").each((index, element) => {
+      const $element = $(element);
+      const uneditedHREF = $element.attr("href");
+      const localHREF = uneditedHREF.replace(
+        "https://traditioninaction.org",
+        "../../../../../data/articles"
+      );
+      relatedTopicsObject.title = $element.text();
+      relatedTopicsObject.href = localHREF;
+      relatedTopics.push(relatedTopicsObject);
+    });
+  } else if (!relatedTopicsElement) {
+    $("li a").each((index, element) => {
+      console.log("I am here");
+    });
+  }
+
+  return relatedTopics;
+}
+
+let firstSentence;
+
+async function cutArticleHTML() {
+  const modifiedHTML = await adjustSizesAndFixURL();
+
+  const htmlArray = modifiedHTML.split(
+    "https://traditioninaction.org/contact.htm"
+  );
+
+  const cleanedCode = htmlArray[1].split("<br>");
+
+  const bestCode = cleanedCode.splice(1).join("");
+
+  const $ = cheerio2.load(bestCode);
+
+  const fontIdR = $("#R");
+
+  const periodIndex = fontIdR.text().split("").indexOf(".");
+  firstSentence = fontIdR
+    .text()
     .split("")
     .slice(0, periodIndex + 1)
-    .join("");
+    .join("")
+    .trim();
+  if (firstSentence.includes(":")) {
+    const sentenceArray = firstSentence.split(":");
+    firstSentence = sentenceArray[1].trim();
+  }
 
-  let scrapedArticle = $("tbody").eq(1);
-  const pattern = /<tr>[\s\S]*?<\/center><br>/;
+  // const textArray = $.text().split(" ");
+  // const selectionIndex = textArray.indexOf("selection:");
+  // const slicedText = textArray.slice(selectionIndex + 1).join(" ");
+  // // const periodIndex = slicedText.split("").indexOf(".");
+  // firstSentence = slicedText
+  //   .split("")
+  //   .slice(0, periodIndex + 1)
+  //   .join("");
+
+  // let scrapedArticle = $("tbody").eq(1);
+  // const pattern = /<tr>[\s\S]*?<\/center><br>/;
 
   // Use replace to remove the matched content
-  scrapedArticle = scrapedArticle.toString().replace(pattern, "");
-  const startIndex = scrapedArticle.indexOf("<!-- AddToAny BEGIN -->");
+  // scrapedArticle = scrapedArticle.toString().replace(pattern, "");
+  const startIndex = $.html().indexOf("<!-- AddToAny BEGIN -->");
+
+  let finishedHTML = $.html();
 
   // Check if the starting string is found
   if (startIndex !== -1) {
     // Use substring to remove everything after and including the starting string
-    scrapedArticle = scrapedArticle.substring(0, startIndex);
+    finishedHTML = finishedHTML.substring(0, startIndex);
   }
 
-  scrapedArticle = scrapedArticle.replace("–", "&ndash;");
-  scrapedArticle = scrapedArticle.replace("-", "&ndash;");
-  scrapedArticle = scrapedArticle.replace("ê", "&ecirc;");
-  scrapedArticle = scrapedArticle.replace("“", "&ldquo;");
-  scrapedArticle = scrapedArticle.replace("”", "&rdquo;");
-  scrapedArticle =
+  finishedHTML = finishedHTML.replace("–", "&ndash;");
+  finishedHTML = finishedHTML.replace("-", "&ndash;");
+  finishedHTML = finishedHTML.replace("ê", "&ecirc;");
+  finishedHTML = finishedHTML.replace("“", "&ldquo;");
+  finishedHTML = finishedHTML.replace("”", "&rdquo;");
+  finishedHTML =
     `<html>
   <meta name='viewport' content='width=device-width' charset='UTF-8'>` +
-    scrapedArticle;
+    finishedHTML;
 
-  const cleanedArticle = cheerio2.load(scrapedArticle);
+  const cleanedArticle = cheerio2.load(finishedHTML);
   const images = cleanedArticle("img[src]");
   const imagesArray = images.map((index, element) => {
     return cleanedArticle(element).attr("src");
@@ -185,10 +298,14 @@ async function adjustArticleHTML() {
 
   downloadImages(imagesArray);
 
-  const filePath = `data/articles/SOD/${"test"}.html`;
-  fs2.writeFileSync(filePath, scrapedArticle, "utf-8");
+  // console.log(finishedHTML);
 
-  return scrapedArticle;
+  const filePath = `data/articles/SOD/${"test"}.html`;
+  fs2.writeFileSync(filePath, finishedHTML, "utf-8");
+
+  return finishedHTML;
 }
 
-adjustArticleHTML();
+getRelatedArticles();
+
+cutArticleHTML();

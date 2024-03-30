@@ -4,19 +4,43 @@ const cheerio2 = require("cheerio");
 const fs2 = require("fs");
 const path = require("path");
 
+let articleList = [
+  {
+    month: "January",
+    date: "January 1",
+    title: "Circumcision of Our Lord",
+    href: "../../../../../data/articles/SOD/j161sd_Circumcision_1-1.html",
+    link: "https://traditioninaction.org/SOD/j161sd_Circumcision_1-1.html",
+  },
+  {
+    month: "January",
+    date: "January 2",
+    title: "St. Basil the Great",
+    href: "../../../../../data/articles/SOD/j293sd_Basili_1-2.html",
+    link: "https://traditioninaction.org/SOD/j293sd_Basili_1-2.htm",
+  },
+  {
+    month: "January",
+    date: "January 2",
+    title: "St. Macarius of Alexandria",
+    href: "../../../../../data/articles/SOD/j162sd_St.Marcarius_1-02.html",
+    link: "https://traditioninaction.org/SOD/j162sd_St.Marcarius_1-02.html",
+  },
+];
+
 const homeURL = "https://traditioninaction.org";
-const SODArticle = "https://traditioninaction.org/SOD/j065sdStJoseph3-19.htm";
 // const SODArticle =
-//   "https://traditioninaction.org/OrganicSociety/A_104_Family_1.html";
+// "https://traditioninaction.org/SOD/j197sd_FrancisAssisr_10-04.html";
 
 const findCategory = (stringURL) => {
   let category = stringURL.split("/")[3];
   return category;
 };
 
-let category = findCategory(SODArticle);
+// let category = findCategory(SODArticle);
 
-async function downloadImages(imagesArray) {
+async function downloadImages(imagesArray, SODArticle) {
+  const category = findCategory(SODArticle);
   const currentWorkingDirectory = process.cwd();
   for (let i = 0; i < imagesArray.length; i++) {
     let imageURL = homeURL + "/" + category + "/" + imagesArray[i];
@@ -54,7 +78,9 @@ function extractFileName(imageUrl) {
   return folders[1];
 }
 
-async function adjustSizesAndFixURL() {
+let styleElements = "";
+
+async function adjustSizesAndFixURL(SODArticle) {
   const { data: html } = await axios2.get(SODArticle);
   const $ = cheerio2.load(html);
 
@@ -90,30 +116,12 @@ async function adjustSizesAndFixURL() {
     }
   });
 
+  // Make condition if it has a styl attribute
   $("font:not([size])").each((index, element) => {
     return $(element).attr("size", 2);
   });
 
-  // let relatedTopics = [];
-  // let relatedTopicsElement = $('center:contains("Related Topics of Interest")');
-  // let $relatedTopicsElement = cheerio2.load(relatedTopicsElement.html());
-  // $relatedTopicsElement("a").each((index, element) => {
-  //   const relatedTopicsObject = {
-  //     href: "",
-  //     title: "",
-  //   };
-  //   const $element = $(element);
-  //   const uneditedHREF = $element.attr("href");
-  //   relatedTopicsObject.title = $element.text();
-  //   if (uneditedHREF.includes("/")) {
-  //     relatedTopicsObject.href =
-  //       "../../../../../data/articles/" + uneditedHREF.replace("../", "");
-  //   } else {
-  //     relatedTopicsObject.href =
-  //       "../../../../../data/articles/" + category + "/" + uneditedHREF;
-  //   }
-  //   relatedTopics.push(relatedTopicsObject);
-  // });
+  let category = findCategory(SODArticle);
 
   $("[href]").each((index, element) => {
     const $element = $(element);
@@ -140,19 +148,66 @@ async function adjustSizesAndFixURL() {
     return $element.attr("href", newHref);
   });
 
+  let regex = /([0-9.]+)px/g;
+
+  let scrapedStyleElements = "";
+
+  $("style").each((index, element) => {
+    const $styleHTML = $(element).html();
+
+    // Function to multiply numerical values by 0.6
+    function multiplyValues(match, p1) {
+      return parseFloat(p1) * 0.6 + "px";
+    }
+
+    // Replace numerical values in the CSS object
+    let adjustedCSS = $styleHTML.replace(regex, multiplyValues);
+
+    $(element).html(adjustedCSS);
+
+    scrapedStyleElements = scrapedStyleElements + "\n" + $(element);
+  });
+
+  styleElements =
+    scrapedStyleElements +
+    "\n" +
+    `<style type="text/css">
+    h1 {
+      text-align: center;
+      color: #800000;
+      font-size: 21px
+    }
+    .author {
+      font-family: "Times New Roman", Times, serif;
+      color: #000000;
+      font-size: medium;
+      text-align: center;
+    }
+  
+    #bodytext {
+      font-family: Arial, Helvetica, sans-serif;
+      color: 0;
+      text-align: left;
+      margin: 10px 0px 0px 00px;
+    }
+  
+    .subtitle {
+      font-family: Arial, Helvetica, sans-serif;
+      font-size: 12px;
+      color: #800080;
+      font-weight: bolder;
+    }
+  </style>`;
+
   return $.html();
 }
 
-async function getRelatedArticles() {
-  const adjustedHTML = await adjustSizesAndFixURL();
+async function getRelatedArticles(adjustedHTML) {
+  // const adjustedHTML = await adjustSizesAndFixURL();
 
   const $ = cheerio2.load(adjustedHTML);
 
   let relatedTopics = [];
-  let relatedTopicsObject = {
-    href: "",
-    title: "",
-  };
   let relatedTopicsIndex = $.html().indexOf("Related Topics of Interest");
   if (relatedTopicsIndex) {
     let relatedTopicsSection = $.html().substring(relatedTopicsIndex);
@@ -182,63 +237,25 @@ async function getRelatedArticles() {
       });
     });
     relatedTopics.pop();
-    console.log(relatedTopics);
-  }
-
-  return;
-  if (relatedTopicsElement.length > 0) {
-    relatedTopicsElement.nextAll().each((index, sibling) => {
-      console.log(sibling);
-      if ($(sibling).is("div") || $(sibling).is("center")) {
-        return false;
-      }
-
-      if ($(sibling).is("a")) {
-        relatedTopics.push({
-          text: $(sibling).text(),
-          href: $(sibling).attr("href"),
-        });
-      }
-    });
-    console.log(relatedTopics);
-  } else {
-    console.log("Related Topics of Interest not found");
-  }
-  return;
-  if (relatedTopicsElement) {
-    let $relatedTopicsElement = cheerio2.load(relatedTopicsElement.html());
-    $relatedTopicsElement("a").each((index, element) => {
-      const $element = $(element);
-      const uneditedHREF = $element.attr("href");
-      const localHREF = uneditedHREF.replace(
-        "https://traditioninaction.org",
-        "../../../../../data/articles"
-      );
-      relatedTopicsObject.title = $element.text();
-      relatedTopicsObject.href = localHREF;
-      relatedTopics.push(relatedTopicsObject);
-    });
-  } else if (!relatedTopicsElement) {
-    $("li a").each((index, element) => {
-      console.log("I am here");
-    });
   }
 
   return relatedTopics;
 }
 
-let firstSentence;
+let firstSentence = "";
 
-async function cutArticleHTML() {
-  const modifiedHTML = await adjustSizesAndFixURL();
+let firstImageHREF = "";
 
-  const htmlArray = modifiedHTML.split(
-    "https://traditioninaction.org/contact.htm"
-  );
+async function cutArticleHTML(SODArticle) {
+  const modifiedHTML = await adjustSizesAndFixURL(SODArticle);
 
-  const cleanedCode = htmlArray[1].split("<br>");
+  getRelatedArticles(modifiedHTML);
 
-  const bestCode = cleanedCode.splice(1).join("");
+  const htmlArray = modifiedHTML.split(`alt="contact">`);
+
+  const cleanedCode = htmlArray[1];
+
+  const bestCode = cleanedCode;
 
   const $ = cheerio2.load(bestCode);
 
@@ -255,6 +272,8 @@ async function cutArticleHTML() {
     const sentenceArray = firstSentence.split(":");
     firstSentence = sentenceArray[1].trim();
   }
+
+  console.log(firstSentence);
 
   // const textArray = $.text().split(" ");
   // const selectionIndex = textArray.indexOf("selection:");
@@ -280,14 +299,15 @@ async function cutArticleHTML() {
     finishedHTML = finishedHTML.substring(0, startIndex);
   }
 
-  finishedHTML = finishedHTML.replace("–", "&ndash;");
-  finishedHTML = finishedHTML.replace("-", "&ndash;");
-  finishedHTML = finishedHTML.replace("ê", "&ecirc;");
-  finishedHTML = finishedHTML.replace("“", "&ldquo;");
-  finishedHTML = finishedHTML.replace("”", "&rdquo;");
+  // finishedHTML = finishedHTML.replace("–", "&ndash;");
+  // finishedHTML = finishedHTML.replace("-", "&ndash;");
+  // finishedHTML = finishedHTML.replace("ê", "&ecirc;");
+  // finishedHTML = finishedHTML.replace("“", "&ldquo;");
+  // finishedHTML = finishedHTML.replace("”", "&rdquo;");
   finishedHTML =
     `<html>
   <meta name='viewport' content='width=device-width' charset='UTF-8'>` +
+    styleElements +
     finishedHTML;
 
   const cleanedArticle = cheerio2.load(finishedHTML);
@@ -296,7 +316,10 @@ async function cutArticleHTML() {
     return cleanedArticle(element).attr("src");
   });
 
-  downloadImages(imagesArray);
+  firstImageHREF = imagesArray[1];
+
+  console.log(firstImageHREF);
+  downloadImages(imagesArray, SODArticle);
 
   // console.log(finishedHTML);
 
@@ -306,6 +329,21 @@ async function cutArticleHTML() {
   return finishedHTML;
 }
 
-getRelatedArticles();
+async function scrapeAll(articleListToScrape) {
+  let newArticleList = [];
+  for (let i = 0; i < articleListToScrape.length; i++) {
+    const articleLink = articleListToScrape[i].link;
+    await cutArticleHTML(articleLink);
+    let newArticleObject = articleListToScrape[i];
+    newArticleObject["firstSentence"] = firstSentence;
+    newArticleObject["firstImage"] = firstImageHREF;
+    newArticleList[i] = newArticleObject;
+  }
+  console.log(newArticleList);
+}
 
-cutArticleHTML();
+scrapeAll(articleList);
+
+// getRelatedArticles();
+
+// cutArticleHTML();

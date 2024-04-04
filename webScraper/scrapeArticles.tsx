@@ -37,6 +37,12 @@ const findCategory = (stringURL) => {
   return category;
 };
 
+const findLink = (stringURL) => {
+  let link = stringURL.split("/")[4];
+  link = link.split(".htm")[0];
+  return link;
+};
+
 // let category = findCategory(SODArticle);
 
 async function downloadImages(imagesArray, SODArticle) {
@@ -242,12 +248,10 @@ async function getRelatedArticles(adjustedHTML) {
   return relatedTopics;
 }
 
-let firstSentence = "";
-
 let firstImageHREF = "";
 
-async function cutArticleHTML(SODArticle) {
-  const modifiedHTML = await adjustSizesAndFixURL(SODArticle);
+async function cutArticleHTML(articleLink, articleHREF) {
+  const modifiedHTML = await adjustSizesAndFixURL(articleLink);
 
   getRelatedArticles(modifiedHTML);
 
@@ -259,21 +263,35 @@ async function cutArticleHTML(SODArticle) {
 
   const $ = cheerio2.load(bestCode);
 
-  const fontIdR = $("#R");
-
-  const periodIndex = fontIdR.text().split("").indexOf(".");
-  firstSentence = fontIdR
-    .text()
-    .split("")
-    .slice(0, periodIndex + 1)
-    .join("")
-    .trim();
-  if (firstSentence.includes(":")) {
-    const sentenceArray = firstSentence.split(":");
-    firstSentence = sentenceArray[1].trim();
-  }
-
-  console.log(firstSentence);
+  // const $fontIdR = $("#R");
+  // let periodIndex = fontIdR.text().split("").indexOf(". <br>");
+  // if (!periodIndex) {
+  //   periodIndex = fontIdR.text().split("").indexOf(".<br>");
+  // }
+  // let brIndex;
+  // let initialParagraph;
+  // if ($fontIdR.html().includes(".<br>")) {
+  //   brIndex = $fontIdR.html().indexOf(".<br>");
+  //   initialParagraph = $fontIdR.html().substring(0, brIndex);
+  // } else if ($fontIdR.html().includes(". <br>")) {
+  //   brIndex = $fontIdR.html().indexOf(". <br>");
+  //   initialParagraph = $fontIdR.html().substring(0, brIndex);
+  // }
+  // console.log(initialParagraph);
+  // const firstSentenceHTML = $fontIdR
+  //   .text()
+  //   .split("")
+  //   .slice(0, periodIndex + 1)
+  //   .join("")
+  //   .trim();
+  // console.log("firstSentenceHTML" + firstSentenceHTML);
+  // const $firstSentenceHTML = $(firstSentenceHTML).text();
+  // console.log($firstSentenceHTML);
+  // if (firstSentenceBeforeSplit.includes(":")) {
+  //   const sentenceArray = firstSentenceBeforeSplit.split(":");
+  //   firstSentence = sentenceArray[1].trim();
+  //   console.log(firstSentence);
+  // }
 
   // const textArray = $.text().split(" ");
   // const selectionIndex = textArray.indexOf("selection:");
@@ -318,32 +336,59 @@ async function cutArticleHTML(SODArticle) {
 
   firstImageHREF = imagesArray[1];
 
-  console.log(firstImageHREF);
-  downloadImages(imagesArray, SODArticle);
+  downloadImages(imagesArray, articleLink);
+
+  const category = findCategory(articleLink);
+
+  let link = findLink(articleLink);
 
   // console.log(finishedHTML);
 
-  const filePath = `data/articles/SOD/${"test"}.html`;
+  const filePath = `data/articles/${category}/${link}.html`;
   fs2.writeFileSync(filePath, finishedHTML, "utf-8");
+
+  const pathToArticleComponent = `app/(tabs)/home/[category]/[url]/index.tsx`;
+
+  let articleComponent = fs2.readFileSync(pathToArticleComponent, "utf-8");
+
+  const elseIndex = articleComponent.indexOf("else {");
+
+  if (elseIndex !== -1) {
+    const closingBraceIndex = articleComponent.indexOf("}", elseIndex);
+    if (closingBraceIndex !== -1) {
+      articleComponent =
+        articleComponent.slice(0, elseIndex) +
+        `else if (category === "${category}" && url === "${link}") 
+        { article = require(\`${articleHREF}\`);
+      }` +
+        articleComponent.slice(elseIndex);
+    }
+  }
+
+  fs2.writeFileSync(pathToArticleComponent, articleComponent, "utf-8");
 
   return finishedHTML;
 }
 
 async function scrapeAll(articleListToScrape) {
-  let newArticleList = [];
+  let articleListBuild = [];
   for (let i = 0; i < articleListToScrape.length; i++) {
     const articleLink = articleListToScrape[i].link;
-    await cutArticleHTML(articleLink);
+    const articleHREF = articleListToScrape[i].href;
+    await cutArticleHTML(articleLink, articleHREF);
     let newArticleObject = articleListToScrape[i];
-    newArticleObject["firstSentence"] = firstSentence;
     newArticleObject["firstImage"] = firstImageHREF;
-    newArticleList[i] = newArticleObject;
+    articleListBuild[i] = newArticleObject;
   }
-  console.log(newArticleList);
+  return articleListBuild;
 }
 
-scrapeAll(articleList);
+async function scrapeAndAddImage() {
+  const newArticleList = await scrapeAll(articleList);
 
-// getRelatedArticles();
+  const filePath = "data/lists/NewSODList.js";
+  const jsonSODList = JSON.stringify(newArticleList, null, 2);
+  fs2.writeFileSync(filePath, jsonSODList, "utf-8");
+}
 
-// cutArticleHTML();
+scrapeAndAddImage();

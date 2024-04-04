@@ -17,10 +17,6 @@ import { SafeAreaView } from "react-native-safe-area-context";
 const Article = () => {
   const { category, url } = useLocalSearchParams();
 
-  const goBack = () => {
-    router.back();
-  };
-
   let article;
   if (category === "SOD" && url === "j197sd_FrancisAssisr_10-04") {
     article = require(`../../../../../data/articles/SOD/j197sd_FrancisAssisr_10-04.html`);
@@ -30,7 +26,19 @@ const Article = () => {
     article = require(`../../../../../data/articles/SOD/h255_Bri.html`);
   } else if (category === "SOD" && url === "test") {
     article = require(`../../../../../data/articles/SOD/test.html`);
+  } else if (category === "SOD" && url === "j161sd_Circumcision_1-1.html") {
+    article = require(`../../../../../data/articles/SOD/j161sd_Circumcision_1-1.html`);
+  } else if (category === "SOD" && url === "j293sd_Basili_1-2.html") {
+    article = require(`../../../../../data/articles/SOD/j293sd_Basili_1-2.html`);
+  } else if (category === "SOD" && url === "j162sd_St.Marcarius_1-02.html") {
+    article = require(`../../../../../data/articles/SOD/j162sd_St.Marcarius_1-02.html`);
+  } else {
+    article = require(`../../../../../data/articles/error.html`);
   }
+
+  const goBack = () => {
+    router.back();
+  };
 
   return (
     <ScrollView
@@ -41,7 +49,7 @@ const Article = () => {
         }
       }
     >
-      <StatusBar />
+      <StatusBar hidden={false} />
       <View
         style={{
           flex: 1,

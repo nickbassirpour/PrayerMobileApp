@@ -28,7 +28,6 @@ const HomeSOD = () => {
   return (
     <View>
       <View>
-        {/* <Link href="home/SOD/j197sd_FrancisAssisr_10-04"> */}
         <Link href="home/SOD/test">
           <ImageBackground
             source={require("../assets/images/saints/St_Francis.png")}
@@ -54,13 +53,13 @@ const HomeSOD = () => {
           </ImageBackground>
         </Link>
       </View>
-      {/* <View style={{ marginLeft: 20, marginBottom: 20 }}>
-            <Link href="/pages/saintsOfTheDay">
-              <Text style={styles.viewAllSaints}>
-                View all Saints and Feast Days
-              </Text>
-            </Link>
-          </View> */}
+      <View style={{ marginLeft: 20, marginBottom: 20 }}>
+        <Link href="/home/SOD">
+          <Text style={styles.viewAllSaints}>
+            View all Saints and Feast Days
+          </Text>
+        </Link>
+      </View>
     </View>
   );
 };

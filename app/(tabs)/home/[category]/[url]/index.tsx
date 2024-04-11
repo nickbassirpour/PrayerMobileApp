@@ -26,13 +26,23 @@ const Article = () => {
     article = require(`../../../../../data/articles/SOD/h255_Bri.html`);
   } else if (category === "SOD" && url === "test") {
     article = require(`../../../../../data/articles/SOD/test.html`);
-  } else if (category === "SOD" && url === "j161sd_Circumcision_1-1.html") {
-    article = require(`../../../../../data/articles/SOD/j161sd_Circumcision_1-1.html`);
-  } else if (category === "SOD" && url === "j293sd_Basili_1-2.html") {
-    article = require(`../../../../../data/articles/SOD/j293sd_Basili_1-2.html`);
-  } else if (category === "SOD" && url === "j162sd_St.Marcarius_1-02.html") {
-    article = require(`../../../../../data/articles/SOD/j162sd_St.Marcarius_1-02.html`);
-  } else {
+  } else if (category === "SOD" && url === "j161sd_Circumcision_1-1") 
+        { article = require(`../../../../../data/articles/SOD/j161sd_Circumcision_1-1.html`);
+      }else if (category === "SOD" && url === "j161sd_Circumcision_1-1") 
+        { article = require(`../../../../../data/articles/SOD/j161sd_Circumcision_1-1.html`);
+      }else if (category === "SOD" && url === "j161sd_Circumcision_1-1") 
+        { article = require(`../../../../../data/articles/SOD/j161sd_Circumcision_1-1.html`);
+      }else if (category === "SOD" && url === "j161sd_Circumcision_1-1") 
+        { article = require(`../../../../../data/articles/SOD/j161sd_Circumcision_1-1.html`);
+      }else if (category === "SOD" && url === "j065sdStJoseph3-19") 
+        { article = require(`../../../../../data/articles/SOD/j161sd_Circumcision_1-1.html`);
+      }else if (category === "SOD" && url === "j065sdStJoseph3-19") 
+        { article = require(`../../../../../data/articles/SOD/j161sd_Circumcision_1-1.html`);
+      }else if (category === "SOD" && url === "j065sdStJoseph3-19") 
+        { article = require(`../../../../../data/articles/SOD/j161sd_Circumcision_1-1.html`);
+      }else if (category === "SOD" && url === "j065sdStJoseph3-19") 
+        { article = require(`../../../../../data/articles/SOD/j161sd_Circumcision_1-1.html`);
+      }else {
     article = require(`../../../../../data/articles/error.html`);
   }
 

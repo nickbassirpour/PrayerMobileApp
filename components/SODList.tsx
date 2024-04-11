@@ -4,29 +4,30 @@ import {
   View,
   ScrollView,
   FlatList,
+  Pressable,
   //   Image,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import React from "react";
 import { Image } from "expo-image";
 import NewSODList from "../data/lists/NewSODList";
-import { SODImageLinks } from "../hooks/SODImages/ImageAssets";
+import { SODImageLinks } from "../assets/firstImages/SOD/Assets";
 import { Link } from "expo-router";
 
 const SODList = () => {
   const renderLinks = ({ item }) => (
-    <View>
-      <Link href={item.href2}>
+    <Link href={item.href2} asChild>
+      <Pressable>
         <View key={item.title} style={styles.saintContainer}>
           <View style={styles.imageContainer}>
-            {getMatchingImage(item.imageLink) && (
+            {getMatchingImage(item.firstImage) && (
               <Image
                 style={styles.SODImage}
-                source={getMatchingImage(item.imageLink)}
+                source={getMatchingImage(item.firstImage)}
               />
             )}
           </View>
-          <View style={styles.textContainer}>
+          <View>
             <View style={styles.textRow}>
               <Text style={styles.SODText}>{item.title}</Text>
             </View>
@@ -35,8 +36,8 @@ const SODList = () => {
             </View>
           </View>
         </View>
-      </Link>
-    </View>
+      </Pressable>
+    </Link>
   );
 
   const getMatchingImage = (imageLink) => {
@@ -45,7 +46,7 @@ const SODList = () => {
 
   return (
     <SafeAreaView>
-      <View>
+      <View style={styles.row}>
         <Text style={styles.title}>The Saint of the Day</Text>
         <Text style={styles.subHeading}>And Important Feast Days</Text>
         <FlatList
@@ -61,6 +62,9 @@ const SODList = () => {
 export default SODList;
 
 const styles = StyleSheet.create({
+  row: {
+    marginLeft: 15,
+  },
   title: {
     fontFamily: "Bitter_700Bold",
     fontSize: 25,
@@ -77,6 +81,8 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   saintContainer: {
+    flexWrap: "wrap",
+    flex: 1,
     flexDirection: "row",
     marginVertical: 6,
     marginHorizontal: 20,
@@ -97,6 +103,7 @@ const styles = StyleSheet.create({
     fontSize: 15,
   },
   textContainer: {
+    flexWrap: "wrap",
     flexDirection: "column",
   },
   textRow: {

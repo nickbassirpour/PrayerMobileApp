@@ -1,4 +1,4 @@
-const SODList2 = require("../data/lists/SODList.js");
+const SODList2 = require("../data/lists/SOD.js");
 const axios2 = require("axios");
 const cheerio2 = require("cheerio");
 const fs2 = require("fs");
@@ -10,22 +10,23 @@ let articleList = [
     date: "January 1",
     title: "Circumcision of Our Lord",
     href: "../../../../../data/articles/SOD/j161sd_Circumcision_1-1.html",
-    link: "https://traditioninaction.org/SOD/j161sd_Circumcision_1-1.html",
+    // link: "https://traditioninaction.org/SOD/j161sd_Circumcision_1-1.html",
+    link: "https://traditioninaction.org/SOD/j065sdStJoseph3-19.htm",
   },
-  {
-    month: "January",
-    date: "January 2",
-    title: "St. Basil the Great",
-    href: "../../../../../data/articles/SOD/j293sd_Basili_1-2.html",
-    link: "https://traditioninaction.org/SOD/j293sd_Basili_1-2.htm",
-  },
-  {
-    month: "January",
-    date: "January 2",
-    title: "St. Macarius of Alexandria",
-    href: "../../../../../data/articles/SOD/j162sd_St.Marcarius_1-02.html",
-    link: "https://traditioninaction.org/SOD/j162sd_St.Marcarius_1-02.html",
-  },
+  // {
+  //   month: "January",
+  //   date: "January 2",
+  //   title: "St. Basil the Great",
+  //   href: "../../../../../data/articles/SOD/j293sd_Basili_1-2.html",
+  //   link: "https://traditioninaction.org/SOD/j293sd_Basili_1-2.htm",
+  // },
+  // {
+  //   month: "January",
+  //   date: "January 2",
+  //   title: "St. Macarius of Alexandria",
+  //   href: "../../../../../data/articles/SOD/j162sd_St.Marcarius_1-02.html",
+  //   link: "https://traditioninaction.org/SOD/j162sd_St.Marcarius_1-02.html",
+  // },
 ];
 
 const homeURL = "https://traditioninaction.org";
@@ -43,11 +44,28 @@ const findLink = (stringURL) => {
   return link;
 };
 
-// let category = findCategory(SODArticle);
+function extractFolderName(imageUrl) {
+  const folders = imageUrl.split("/");
+  return folders[0];
+}
 
-async function downloadImages(imagesArray, SODArticle) {
-  const category = findCategory(SODArticle);
+function extractFileName(imageUrl) {
+  const folders = imageUrl.split("/");
+  return folders[1];
+}
+
+async function downloadImages(finishedHTML, category, articleLink) {
+  const $cleanedArticle = cheerio2.load(finishedHTML);
+
+  const images = $cleanedArticle("img[src]");
+  const imagesArray = images.map((index, element) => {
+    return $cleanedArticle(element).attr("src");
+  });
+
   const currentWorkingDirectory = process.cwd();
+
+  let firstImage;
+
   for (let i = 0; i < imagesArray.length; i++) {
     let imageURL = homeURL + "/" + category + "/" + imagesArray[i];
     const directoryName = extractFolderName(imagesArray[i]);
@@ -71,17 +89,58 @@ async function downloadImages(imagesArray, SODArticle) {
     } catch (error) {
       console.error("Error downloading image:", error);
     }
+
+    // Only add first image to asset list
+    if (i === 0) {
+      const filePathAsset = path.join(
+        currentWorkingDirectory,
+        "assets",
+        "firstImages",
+        category,
+        "Assets.tsx"
+      );
+
+      let imageAssetFile = fs2.readFileSync(filePathAsset, "utf-8");
+
+      // Find next number for image variable
+      const regexImage = /const Image\d+/g;
+      const imageMatches = [];
+      let imageMatch;
+      while ((imageMatch = regexImage.exec(imageAssetFile)) !== null) {
+        imageMatches.push(imageMatch);
+      }
+      const lastMatch = imageMatches[imageMatches.length - 1];
+      const nextNumber = parseInt(lastMatch[0].match(/\d+/)[0]) + 1;
+
+      // Find position for next image variable
+      const endOfAssetsIndex = imageAssetFile.indexOf("const SODImageLinks");
+      if (endOfAssetsIndex !== -1) {
+        imageAssetFile =
+          imageAssetFile.slice(0, endOfAssetsIndex) +
+          `const Image${nextNumber} = Asset.fromModule(
+              require("../../assets/${directoryName}/${fileName}")
+            );` +
+          imageAssetFile.slice(endOfAssetsIndex);
+      }
+
+      // Find position for image object in array
+      const endingSquareBracket = imageAssetFile.indexOf("];");
+      if (endingSquareBracket !== -1) {
+        imageAssetFile =
+          imageAssetFile.slice(0, endingSquareBracket) +
+          `{ image: "${directoryName}/${fileName}", asset: Image${nextNumber}},` +
+          imageAssetFile.slice(endingSquareBracket);
+      }
+
+      firstImage = `${directoryName}/${fileName}`;
+
+      fs2.writeFileSync(filePathAsset, imageAssetFile, "utf-8");
+    }
   }
-}
 
-function extractFolderName(imageUrl) {
-  const folders = imageUrl.split("/");
-  return folders[0];
-}
-
-function extractFileName(imageUrl) {
-  const folders = imageUrl.split("/");
-  return folders[1];
+  return firstImage;
+  // return firstImage and pass it to updateArticleList
+  // along with the relatedArticles
 }
 
 let styleElements = "";
@@ -122,7 +181,7 @@ async function adjustSizesAndFixURL(SODArticle) {
     }
   });
 
-  // Make condition if it has a styl attribute
+  // Make condition if it has a style attribute
   $("font:not([size])").each((index, element) => {
     return $(element).attr("size", 2);
   });
@@ -248,65 +307,20 @@ async function getRelatedArticles(adjustedHTML) {
   return relatedTopics;
 }
 
-let firstImageHREF = "";
+// let firstImageHREF = "";
+// let relatedArticles;
 
 async function cutArticleHTML(articleLink, articleHREF) {
   const modifiedHTML = await adjustSizesAndFixURL(articleLink);
 
-  getRelatedArticles(modifiedHTML);
+  const relatedArticles = await getRelatedArticles(modifiedHTML);
 
   const htmlArray = modifiedHTML.split(`alt="contact">`);
 
   const cleanedCode = htmlArray[1];
 
-  const bestCode = cleanedCode;
+  const $ = cheerio2.load(cleanedCode);
 
-  const $ = cheerio2.load(bestCode);
-
-  // const $fontIdR = $("#R");
-  // let periodIndex = fontIdR.text().split("").indexOf(". <br>");
-  // if (!periodIndex) {
-  //   periodIndex = fontIdR.text().split("").indexOf(".<br>");
-  // }
-  // let brIndex;
-  // let initialParagraph;
-  // if ($fontIdR.html().includes(".<br>")) {
-  //   brIndex = $fontIdR.html().indexOf(".<br>");
-  //   initialParagraph = $fontIdR.html().substring(0, brIndex);
-  // } else if ($fontIdR.html().includes(". <br>")) {
-  //   brIndex = $fontIdR.html().indexOf(". <br>");
-  //   initialParagraph = $fontIdR.html().substring(0, brIndex);
-  // }
-  // console.log(initialParagraph);
-  // const firstSentenceHTML = $fontIdR
-  //   .text()
-  //   .split("")
-  //   .slice(0, periodIndex + 1)
-  //   .join("")
-  //   .trim();
-  // console.log("firstSentenceHTML" + firstSentenceHTML);
-  // const $firstSentenceHTML = $(firstSentenceHTML).text();
-  // console.log($firstSentenceHTML);
-  // if (firstSentenceBeforeSplit.includes(":")) {
-  //   const sentenceArray = firstSentenceBeforeSplit.split(":");
-  //   firstSentence = sentenceArray[1].trim();
-  //   console.log(firstSentence);
-  // }
-
-  // const textArray = $.text().split(" ");
-  // const selectionIndex = textArray.indexOf("selection:");
-  // const slicedText = textArray.slice(selectionIndex + 1).join(" ");
-  // // const periodIndex = slicedText.split("").indexOf(".");
-  // firstSentence = slicedText
-  //   .split("")
-  //   .slice(0, periodIndex + 1)
-  //   .join("");
-
-  // let scrapedArticle = $("tbody").eq(1);
-  // const pattern = /<tr>[\s\S]*?<\/center><br>/;
-
-  // Use replace to remove the matched content
-  // scrapedArticle = scrapedArticle.toString().replace(pattern, "");
   const startIndex = $.html().indexOf("<!-- AddToAny BEGIN -->");
 
   let finishedHTML = $.html();
@@ -328,31 +342,22 @@ async function cutArticleHTML(articleLink, articleHREF) {
     styleElements +
     finishedHTML;
 
-  const cleanedArticle = cheerio2.load(finishedHTML);
-  const images = cleanedArticle("img[src]");
-  const imagesArray = images.map((index, element) => {
-    return cleanedArticle(element).attr("src");
-  });
-
-  firstImageHREF = imagesArray[1];
-
-  downloadImages(imagesArray, articleLink);
-
   const category = findCategory(articleLink);
+  const link = findLink(articleLink);
 
-  let link = findLink(articleLink);
-
-  // console.log(finishedHTML);
-
-  const filePath = `data/articles/${category}/${link}.html`;
+  const filePath = `data/articles/${category}/test.html`;
   fs2.writeFileSync(filePath, finishedHTML, "utf-8");
+
+  const firstImage = await downloadImages(finishedHTML, category, articleLink);
+  console.log(firstImage);
+  console.log(relatedArticles);
+  updateArticleList(articleLink, firstImage, relatedArticles);
 
   const pathToArticleComponent = `app/(tabs)/home/[category]/[url]/index.tsx`;
 
   let articleComponent = fs2.readFileSync(pathToArticleComponent, "utf-8");
 
   const elseIndex = articleComponent.indexOf("else {");
-
   if (elseIndex !== -1) {
     const closingBraceIndex = articleComponent.indexOf("}", elseIndex);
     if (closingBraceIndex !== -1) {
@@ -370,25 +375,29 @@ async function cutArticleHTML(articleLink, articleHREF) {
   return finishedHTML;
 }
 
+const updateArticleList = (articleLink, firstImage, relatedArticles) => {
+  const category = findCategory(articleLink);
+  const filePath = `data/lists/${category}.js`;
+  let listFile = fs2.readFileSync(filePath, "utf-8");
+  const articleObjLink = listFile.indexOf(`link: "${articleLink}",`);
+
+  if (articleObjLink !== -1) {
+    listFile =
+      listFile.slice(0, articleObjLink) +
+      `image: "${firstImage}",` +
+      `relatedArticles: ${JSON.stringify(relatedArticles)},` +
+      listFile.slice(articleObjLink);
+  }
+  fs2.writeFileSync(filePath, listFile, "utf-8");
+};
+
 async function scrapeAll(articleListToScrape) {
-  let articleListBuild = [];
   for (let i = 0; i < articleListToScrape.length; i++) {
     const articleLink = articleListToScrape[i].link;
     const articleHREF = articleListToScrape[i].href;
     await cutArticleHTML(articleLink, articleHREF);
-    let newArticleObject = articleListToScrape[i];
-    newArticleObject["firstImage"] = firstImageHREF;
-    articleListBuild[i] = newArticleObject;
+    // updateArticleList(articleLink);
   }
-  return articleListBuild;
 }
 
-async function scrapeAndAddImage() {
-  const newArticleList = await scrapeAll(articleList);
-
-  const filePath = "data/lists/NewSODList.js";
-  const jsonSODList = JSON.stringify(newArticleList, null, 2);
-  fs2.writeFileSync(filePath, jsonSODList, "utf-8");
-}
-
-scrapeAndAddImage();
+scrapeAll(articleList);

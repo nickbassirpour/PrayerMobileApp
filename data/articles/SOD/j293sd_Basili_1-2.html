@@ -101,6 +101,7 @@ img.center {display: block;   margin-left: auto;   margin-right: auto; }
     #bodytext {
       font-family: Arial, Helvetica, sans-serif;
       color: 0;
+	  font-size: 20px;
       text-align: left;
       margin: 10px 0px 0px 00px;
     }
@@ -119,7 +120,7 @@ img.center {display: block;   margin-left: auto;   margin-right: auto; }
 
 	
 <div id="bodytext">
-<font id="R" size="2">
+<font id="R" size="4">
 <!--
 <div class="blocktextblue">This is the sermon delivered on this Sunday's feast day of Our Lord </div>
 <br><br>	
@@ -137,6 +138,47 @@ Thus, for example, there is the centuries-old – and still modern – tactic of
 
 <div id="leftpic1"><img alt="St. Basil the Great" height="291" src="SODimages6/293_Ba-3.jpg" width="210">
 <p>St. Basil the Great</p></div>
+
+<script>
+
+function scrapeArticle(html) {
+
+	const fullHtml = cheerio.load(html)
+
+	const allImageContainerInMainText = cheerio.load(html-all-my-images-based-on-html) 
+	// <div> <img/> <p>possible subtitle</p> </div>
+
+	const parsedImageWithSubtitle = {
+		imageUrl: "uri",
+		subtitle: "St. Basil the Great"
+	}
+
+	const allParagraphsNotInAImageContainer: string[] = []
+
+	type ViewableItemsInMyArticle = {
+		body: string
+		image: string | null
+		image_subtitle: string | null
+	}
+	
+	// done somewhere in app, but this is pure data logic
+	const myOrderOfViews: ViewableItemsInMyArticle[] = []
+
+	// in React view
+	return myOrderOfViews.map(viewable => {
+		if (viewable does not have image) {
+			return <p>{viewable.body}
+		}
+
+		if (viewable has an image and/or subtitle) {
+			return <div><image src={viewable.image}> <p>{viewable.body}> </div>
+		}
+	})
+}
+	
+</script>
+
+
 
 Since God calls Saints with special gifts that fit the epochs in which they live and the role He expects them to realize, let us focus summarily on the behavior of a Saint who, in the 4<sup>th</sup> century of the Christian Era, had to face in his apostolic strategy the same problems Catholics face today. He had to confront those enemies who attack directly and indirectly at the same time.
 <br><br>

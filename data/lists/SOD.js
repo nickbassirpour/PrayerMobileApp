@@ -1,4 +1,4 @@
-SODList = [
+export const SODList = [
   {
     month: "January",
     date: "January 1",
@@ -10,7 +10,7 @@ SODList = [
     month: "January",
     date: "January 2",
     title: "St. Basil the Great",
-    href: "../../../../../data/articles/SOD/j293sd_Basili_1-2.html",
+    href: "../../../../../data/articles/SOD/j293sd_Basili_1-2.htmlstupid",
     link: "https://traditioninaction.org/SOD/j293sd_Basili_1-2.htm",
   },
   {
@@ -578,6 +578,26 @@ SODList = [
     date: "March 19",
     title: "St. Joseph",
     href: "../../../../../data/articles/SOD/j065sdStJoseph3-19.html",
+    // localLink: require("../../../../../data/articles/SOD/j065sdStJoseph3-19.html"),
+    // image: require("../../assets/SODimages2/065_Egypt.jpg"),
+    // relatedArticles: [
+    //   {
+    //     text: "The Saints Speak about Devotion to St. Joseph",
+    //     href: "../../../../../data/articles/religious/b008rpJoseph.htm",
+    //   },
+    //   {
+    //     text: "With St. Joseph at Christmas: In a Sea of Peace",
+    //     href: "../../../../../data/articles/religious/a010rp.htm",
+    //   },
+    //   {
+    //     text: "Prayer to St. Joseph",
+    //     href: "../../../../../data/articles/religious/b008rpFamilyofSaints.htm",
+    //   },
+    //   {
+    //     text: "The Great St. Joseph",
+    //     href: "../../../../../data/articles/books.htm#joseph",
+    //   },
+    // ],
     link: "https://traditioninaction.org/SOD/j065sdStJoseph3-19.htm",
   },
   {
@@ -2701,9 +2721,10 @@ SODList = [
     month: "December",
     date: "December 31",
     title: "Pope St. Sylvester",
-    href: "../../../../../data/articles/SOD/j054sdSylvester12-31.html",
+    href: "../../../../../data/articles/SOD/j293sd_Basili_1-2.html",
     link: "https://traditioninaction.org/SOD/j054sdSylvester12-31.htm",
+    localLink: require("../../data/articles/SOD/j293sd_Basili_1-2.html"),
   },
 ];
 
-module.exports = SODList;
+// module.exports = SODList;

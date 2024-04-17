@@ -7,44 +7,24 @@ import {
   Pressable,
 } from "react-native";
 import { useLocalSearchParams, Link, router } from "expo-router";
-import React from "react";
+import React, { useEffect, useState } from "react";
 // import WebView from "react-native-webview";
 import AutoHeightWebView from "../../../../../components/AutoHeightWebView";
 import { StatusBar } from "expo-status-bar";
+import NewSODList from "../../../../../data/lists/NewSODList";
+import { SODList } from "../../../../../data/lists/SOD";
 import { SafeAreaView } from "react-native-safe-area-context";
 // import WebView from "react-native-autoheight-webview";
 
-const Article = () => {
+const Article = (href) => {
   const { category, url } = useLocalSearchParams();
 
-  let article;
-  if (category === "SOD" && url === "j197sd_FrancisAssisr_10-04") {
-    article = require(`../../../../../data/articles/SOD/j197sd_FrancisAssisr_10-04.html`);
-  } else if (category === "SOD" && url === "stBrigid") {
-    article = require(`../../../../../data/articles/SOD/stBrigid.html`);
-  } else if (category === "SOD" && url === "h255_Bri") {
-    article = require(`../../../../../data/articles/SOD/h255_Bri.html`);
-  } else if (category === "SOD" && url === "test") {
-    article = require(`../../../../../data/articles/SOD/test.html`);
-  } else if (category === "SOD" && url === "j161sd_Circumcision_1-1") 
-        { article = require(`../../../../../data/articles/SOD/j161sd_Circumcision_1-1.html`);
-      }else if (category === "SOD" && url === "j161sd_Circumcision_1-1") 
-        { article = require(`../../../../../data/articles/SOD/j161sd_Circumcision_1-1.html`);
-      }else if (category === "SOD" && url === "j161sd_Circumcision_1-1") 
-        { article = require(`../../../../../data/articles/SOD/j161sd_Circumcision_1-1.html`);
-      }else if (category === "SOD" && url === "j161sd_Circumcision_1-1") 
-        { article = require(`../../../../../data/articles/SOD/j161sd_Circumcision_1-1.html`);
-      }else if (category === "SOD" && url === "j065sdStJoseph3-19") 
-        { article = require(`../../../../../data/articles/SOD/j161sd_Circumcision_1-1.html`);
-      }else if (category === "SOD" && url === "j065sdStJoseph3-19") 
-        { article = require(`../../../../../data/articles/SOD/j161sd_Circumcision_1-1.html`);
-      }else if (category === "SOD" && url === "j065sdStJoseph3-19") 
-        { article = require(`../../../../../data/articles/SOD/j161sd_Circumcision_1-1.html`);
-      }else if (category === "SOD" && url === "j065sdStJoseph3-19") 
-        { article = require(`../../../../../data/articles/SOD/j161sd_Circumcision_1-1.html`);
-      }else {
-    article = require(`../../../../../data/articles/error.html`);
-  }
+  //cost of creating array vs having them all be created/imported every time
+  //find memory usage/performance monitoring tool
+
+  const htmlContent = SODList.find((article) => {
+    return article.href === `../../../../../data/articles/${category}/${url}`;
+  })?.localLink;
 
   const goBack = () => {
     router.back();
@@ -103,7 +83,7 @@ const Article = () => {
             <Text>Next</Text>
           </View>
         </View>
-        <AutoHeightWebView originWhitelist={["*"]} source={article} />
+        <AutoHeightWebView originWhitelist={["*"]} source={htmlContent} />
         {/* <WebView
           originWhitelist={["*"]}
           source={article}

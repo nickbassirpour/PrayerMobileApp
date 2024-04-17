@@ -28,7 +28,7 @@ const HomeSOD = () => {
   return (
     <View>
       <View>
-        <Link href="home/SOD/test">
+        <Link href="home/SOD/j293sd_Basili_1-2.html">
           <ImageBackground
             source={require("../assets/images/saints/St_Francis.png")}
             style={{

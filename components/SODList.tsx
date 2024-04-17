@@ -1,31 +1,17 @@
-import {
-  StyleSheet,
-  Text,
-  View,
-  ScrollView,
-  FlatList,
-  Pressable,
-  //   Image,
-} from "react-native";
+import { StyleSheet, Text, View, FlatList, Pressable } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import React from "react";
 import { Image } from "expo-image";
 import NewSODList from "../data/lists/NewSODList";
-import { SODImageLinks } from "../assets/firstImages/SOD/Assets";
 import { Link } from "expo-router";
 
 const SODList = () => {
   const renderLinks = ({ item }) => (
-    <Link href={item.href2} asChild>
+    <Link href={{ pathname: item.href2, params: { href: item.href } }} asChild>
       <Pressable>
         <View key={item.title} style={styles.saintContainer}>
           <View style={styles.imageContainer}>
-            {getMatchingImage(item.firstImage) && (
-              <Image
-                style={styles.SODImage}
-                source={getMatchingImage(item.firstImage)}
-              />
-            )}
+            <Image style={styles.SODImage} source={item.image} />
           </View>
           <View>
             <View style={styles.textRow}>
@@ -39,10 +25,6 @@ const SODList = () => {
       </Pressable>
     </Link>
   );
-
-  const getMatchingImage = (imageLink) => {
-    return SODImageLinks.find((link) => link.imageNum === imageLink).asset;
-  };
 
   return (
     <SafeAreaView>

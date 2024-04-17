@@ -4,6 +4,14 @@ const cheerio2 = require("cheerio");
 const fs2 = require("fs");
 const path = require("path");
 
+// @types/cheerio
+// https://www.npmjs.com/package/@types/cheerio
+// npm install --save @types/cheerio
+// npm i @types/node
+
+// How to run:
+// node scrapeArticles.tsx
+
 let articleList = [
   {
     month: "January",
@@ -29,7 +37,11 @@ let articleList = [
   // },
 ];
 
-const homeURL = "https://traditioninaction.org";
+function main() {
+  scrapeAll(articleList);
+}
+
+main();
 // const SODArticle =
 // "https://traditioninaction.org/SOD/j197sd_FrancisAssisr_10-04.html";
 
@@ -54,134 +66,178 @@ function extractFileName(imageUrl) {
   return folders[1];
 }
 
-async function downloadImages(finishedHTML, category, articleLink) {
-  const $cleanedArticle = cheerio2.load(finishedHTML);
-
-  const images = $cleanedArticle("img[src]");
-  const imagesArray = images.map((index, element) => {
-    return $cleanedArticle(element).attr("src");
+function getImageURLs($articleNode) {
+  const images = $articleNode("img[src]");
+  return images.map((index, element) => {
+    return $articleNode(element).attr("src");
   });
+}
 
-  const currentWorkingDirectory = process.cwd();
+async function downloadAndWriteImage(image, category, cwd, filePath) {
+  if (!fs2.existsSync(path.dirname(filePath))) {
+    fs2.mkdirSync(path.dirname(filePath), { recursive: true });
+  }
 
-  let firstImage;
+  try {
+    const imageURL = `https://traditioninaction.org/${category}/${image}`;
+    const response = await axios2.get(imageURL, {
+      responseType: "arraybuffer",
+    });
+    fs2.writeFileSync(filePath, response.data);
+  } catch (error) {
+    console.error("Error downloading image:", error);
+  }
+}
 
-  for (let i = 0; i < imagesArray.length; i++) {
-    let imageURL = homeURL + "/" + category + "/" + imagesArray[i];
-    const directoryName = extractFolderName(imagesArray[i]);
-    const fileName = extractFileName(imagesArray[i]);
-    const filePath = path.join(
-      currentWorkingDirectory,
-      "assets",
-      directoryName,
-      fileName
+function makePathForImage(cwd, directoryName, fileName) {
+  return path.join(cwd, "assets", directoryName, fileName);
+}
+
+/**
+ * I process this one separately because so and so.
+ */
+async function processFirstImage(image, cwd, category) {
+  const directoryName = extractFolderName(image);
+  const fileName = extractFileName(image);
+  const filePath = makePathForImage(cwd, directoryName, fileName);
+  await downloadAndWriteImage(image, category, cwd, filePath);
+
+  const filePathAsset = path.join(
+    cwd,
+    "assets",
+    "firstImages",
+    category,
+    "Assets.tsx"
+  );
+
+  let imageAssetFile = fs2.readFileSync(filePathAsset, "utf-8");
+
+  // Find next number for image variable
+  const regexImage = /const Image\d+/g;
+  const imageMatches = [];
+  let imageMatch;
+  while ((imageMatch = regexImage.exec(imageAssetFile)) !== null) {
+    imageMatches.push(imageMatch);
+  }
+  const lastMatch = imageMatches[imageMatches.length - 1];
+  const nextNumber = parseInt(lastMatch[0].match(/\d+/)[0]) + 1;
+
+  // Find position for next image variable
+  const endOfAssetsIndex = imageAssetFile.indexOf("const SODImageLinks");
+  if (endOfAssetsIndex !== -1) {
+    imageAssetFile =
+      imageAssetFile.slice(0, endOfAssetsIndex) +
+      `const Image${nextNumber} = Asset.fromModule(
+            require("../../assets/${directoryName}/${fileName}")
+          );` +
+      imageAssetFile.slice(endOfAssetsIndex);
+  }
+
+  // Find position for image object in array
+  const endingSquareBracket = imageAssetFile.indexOf("];");
+  if (endingSquareBracket !== -1) {
+    imageAssetFile =
+      imageAssetFile.slice(0, endingSquareBracket) +
+      `{ image: "${directoryName}/${fileName}", asset: Image${nextNumber}},` +
+      imageAssetFile.slice(endingSquareBracket);
+  }
+
+  image = `${directoryName}/${fileName}`;
+
+  fs2.writeFileSync(filePathAsset, imageAssetFile, "utf-8");
+}
+
+async function downloadImages(finishedHTML, category) {
+  const $cleanedArticle = cheerio2.load(finishedHTML);
+  const images = getImageURLs($cleanedArticle);
+  const cwd = process.cwd();
+
+  const firstImage = images[0];
+  await processFirstImage(firstImage, cwd, category);
+
+  const restImages = images.slice(1);
+  for (let i = 0; i < restImages.length; i++) {
+    const image = images[i];
+    const directoryName = extractFolderName(image);
+    const fileName = extractFileName(image);
+    await downloadAndWriteImage(
+      image,
+      category,
+      cwd,
+      makePathForImage(cwd, directoryName, fileName)
     );
-
-    if (!fs2.existsSync(path.dirname(filePath))) {
-      fs2.mkdirSync(path.dirname(filePath), { recursive: true });
-    }
-
-    try {
-      const response = await axios2.get(imageURL, {
-        responseType: "arraybuffer",
-      });
-      fs2.writeFileSync(filePath, response.data);
-    } catch (error) {
-      console.error("Error downloading image:", error);
-    }
-
-    // Only add first image to asset list
-    if (i === 0) {
-      const filePathAsset = path.join(
-        currentWorkingDirectory,
-        "assets",
-        "firstImages",
-        category,
-        "Assets.tsx"
-      );
-
-      let imageAssetFile = fs2.readFileSync(filePathAsset, "utf-8");
-
-      // Find next number for image variable
-      const regexImage = /const Image\d+/g;
-      const imageMatches = [];
-      let imageMatch;
-      while ((imageMatch = regexImage.exec(imageAssetFile)) !== null) {
-        imageMatches.push(imageMatch);
-      }
-      const lastMatch = imageMatches[imageMatches.length - 1];
-      const nextNumber = parseInt(lastMatch[0].match(/\d+/)[0]) + 1;
-
-      // Find position for next image variable
-      const endOfAssetsIndex = imageAssetFile.indexOf("const SODImageLinks");
-      if (endOfAssetsIndex !== -1) {
-        imageAssetFile =
-          imageAssetFile.slice(0, endOfAssetsIndex) +
-          `const Image${nextNumber} = Asset.fromModule(
-              require("../../assets/${directoryName}/${fileName}")
-            );` +
-          imageAssetFile.slice(endOfAssetsIndex);
-      }
-
-      // Find position for image object in array
-      const endingSquareBracket = imageAssetFile.indexOf("];");
-      if (endingSquareBracket !== -1) {
-        imageAssetFile =
-          imageAssetFile.slice(0, endingSquareBracket) +
-          `{ image: "${directoryName}/${fileName}", asset: Image${nextNumber}},` +
-          imageAssetFile.slice(endingSquareBracket);
-      }
-
-      firstImage = `${directoryName}/${fileName}`;
-
-      fs2.writeFileSync(filePathAsset, imageAssetFile, "utf-8");
-    }
   }
 
   return firstImage;
-  // return firstImage and pass it to updateArticleList
-  // along with the relatedArticles
 }
 
-let styleElements = "";
+function processWidth($, element) {
+  let widthValue = $(element).attr("width");
+  if (widthValue == "607" || widthValue == 607) {
+    return $(element).removeAttr("width");
+  }
+  if (!isNaN(widthValue)) {
+    const newWidth = Math.floor(parseFloat(widthValue) * 0.6);
+    return $(element).attr("width", newWidth.toString());
+  }
+}
+
+function processHeight($, element) {
+  let heightValue = $(element).attr("height");
+  if (heightValue == "607" || heightValue == 607) {
+    return $(element).removeAttr("height");
+  }
+  if (!isNaN(heightValue)) {
+    const newHeight = Math.floor(parseFloat(heightValue) * 0.6);
+    return $(element).attr("height", newHeight.toString());
+  }
+}
+
+function processSize($, element) {
+  const sizeValue = $(element).attr("size");
+  if (!isNaN(sizeValue)) {
+    const newSize = sizeValue - 1;
+    return $(element).attr("size", newSize);
+  }
+}
+
+function cleanImageUrl($element, category, url) {
+  {
+    if (url.includes("../")) {
+      url = url.replace("../", "/");
+    } else if (url.includes("./")) {
+      url = url.replace("./", "/");
+    }
+    if (url.includes("shtml")) {
+      url = url.replace("shtml", "html");
+    } else if (url.includes("shtm")) {
+      url = url.replace("shtm", "htm");
+    }
+    if (!url.includes("/") && !url.includes("http")) {
+      url = "https://traditioninaction.org" + "/" + category + "/" + url;
+    } else if (!url.includes("http")) {
+      url = "https://traditioninaction.org" + url;
+    }
+  }
+  return $element.attr("href", url);
+}
 
 async function adjustSizesAndFixURL(SODArticle) {
   const { data: html } = await axios2.get(SODArticle);
   const $ = cheerio2.load(html);
 
   $("[width]").each((index, element) => {
-    let widthValue = $(element).attr("width");
-    if (widthValue == "607" || widthValue == 607) {
-      return $(element).removeAttr("width");
-    }
-    if (!isNaN(widthValue)) {
-      const newWidth = Math.floor(parseFloat(widthValue) * 0.6);
-      return $(element).attr("width", newWidth.toString());
-    }
+    return processWidth($, element);
   });
 
   $("[height]").each((index, element) => {
-    let heightValue = $(element).attr("height");
-    if (heightValue == "607" || heightValue == 607) {
-      return $(element).removeAttr("height");
-    }
-    if (!isNaN(heightValue)) {
-      const newHeight = Math.floor(parseFloat(heightValue) * 0.6);
-      return $(element).attr("height", newHeight.toString());
-    }
+    return processHeight($, element);
   });
 
   $("[size]").each((index, element) => {
-    const sizeValue = $(element).attr("size");
-
-    if (!isNaN(sizeValue)) {
-      const newSize = sizeValue - 1;
-
-      return $(element).attr("size", newSize);
-    }
+    return processSize($, element);
   });
 
-  // Make condition if it has a style attribute
   $("font:not([size])").each((index, element) => {
     return $(element).attr("size", 2);
   });
@@ -191,30 +247,16 @@ async function adjustSizesAndFixURL(SODArticle) {
   $("[href]").each((index, element) => {
     const $element = $(element);
     let newHref = $element.attr("href");
-
     if (newHref) {
-      if (newHref.includes("../")) {
-        newHref = newHref.replace("../", "/");
-      } else if (newHref.includes("./")) {
-        newHref = newHref.replace("./", "/");
-      }
-      if (newHref.includes("shtml")) {
-        newHref = newHref.replace("shtml", "html");
-      } else if (newHref.includes("shtm")) {
-        newHref = newHref.replace("shtm", "htm");
-      }
-      if (!newHref.includes("/") && !newHref.includes("http")) {
-        newHref =
-          "https://traditioninaction.org" + "/" + category + "/" + newHref;
-      } else if (!newHref.includes("http")) {
-        newHref = "https://traditioninaction.org" + newHref;
-      }
+      return cleanImageUrl($element, category, newHref);
     }
-    return $element.attr("href", newHref);
   });
 
-  let regex = /([0-9.]+)px/g;
+  return $.html();
+}
 
+function createStyleElement($) {
+  let regex = /([0-9.]+)px/g;
   let scrapedStyleElements = "";
 
   $("style").each((index, element) => {
@@ -233,7 +275,7 @@ async function adjustSizesAndFixURL(SODArticle) {
     scrapedStyleElements = scrapedStyleElements + "\n" + $(element);
   });
 
-  styleElements =
+  scrapedStyleElements =
     scrapedStyleElements +
     "\n" +
     `<style type="text/css">
@@ -264,12 +306,10 @@ async function adjustSizesAndFixURL(SODArticle) {
     }
   </style>`;
 
-  return $.html();
+  return scrapedStyleElements;
 }
 
 async function getRelatedArticles(adjustedHTML) {
-  // const adjustedHTML = await adjustSizesAndFixURL();
-
   const $ = cheerio2.load(adjustedHTML);
 
   let relatedTopics = [];
@@ -307,75 +347,24 @@ async function getRelatedArticles(adjustedHTML) {
   return relatedTopics;
 }
 
-// let firstImageHREF = "";
-// let relatedArticles;
-
-async function cutArticleHTML(articleLink, articleHREF) {
-  const modifiedHTML = await adjustSizesAndFixURL(articleLink);
-
-  const relatedArticles = await getRelatedArticles(modifiedHTML);
-
+function cutArticleHTML(modifiedHTML) {
   const htmlArray = modifiedHTML.split(`alt="contact">`);
-
   const cleanedCode = htmlArray[1];
-
   const $ = cheerio2.load(cleanedCode);
-
   const startIndex = $.html().indexOf("<!-- AddToAny BEGIN -->");
-
-  let finishedHTML = $.html();
-
-  // Check if the starting string is found
+  let cutHTML = $.html();
   if (startIndex !== -1) {
-    // Use substring to remove everything after and including the starting string
-    finishedHTML = finishedHTML.substring(0, startIndex);
+    cutHTML = cutHTML.substring(0, startIndex);
   }
-
-  // finishedHTML = finishedHTML.replace("–", "&ndash;");
-  // finishedHTML = finishedHTML.replace("-", "&ndash;");
-  // finishedHTML = finishedHTML.replace("ê", "&ecirc;");
-  // finishedHTML = finishedHTML.replace("“", "&ldquo;");
-  // finishedHTML = finishedHTML.replace("”", "&rdquo;");
-  finishedHTML =
-    `<html>
-  <meta name='viewport' content='width=device-width' charset='UTF-8'>` +
-    styleElements +
-    finishedHTML;
-
-  const category = findCategory(articleLink);
-  const link = findLink(articleLink);
-
-  const filePath = `data/articles/${category}/test.html`;
-  fs2.writeFileSync(filePath, finishedHTML, "utf-8");
-
-  const firstImage = await downloadImages(finishedHTML, category, articleLink);
-  console.log(firstImage);
-  console.log(relatedArticles);
-  updateArticleList(articleLink, firstImage, relatedArticles);
-
-  const pathToArticleComponent = `app/(tabs)/home/[category]/[url]/index.tsx`;
-
-  let articleComponent = fs2.readFileSync(pathToArticleComponent, "utf-8");
-
-  const elseIndex = articleComponent.indexOf("else {");
-  if (elseIndex !== -1) {
-    const closingBraceIndex = articleComponent.indexOf("}", elseIndex);
-    if (closingBraceIndex !== -1) {
-      articleComponent =
-        articleComponent.slice(0, elseIndex) +
-        `else if (category === "${category}" && url === "${link}") 
-        { article = require(\`${articleHREF}\`);
-      }` +
-        articleComponent.slice(elseIndex);
-    }
-  }
-
-  fs2.writeFileSync(pathToArticleComponent, articleComponent, "utf-8");
-
-  return finishedHTML;
+  return cutHTML;
 }
 
-const updateArticleList = (articleLink, firstImage, relatedArticles) => {
+function updateArticleList(
+  articleLink,
+  articleHREF,
+  firstImage,
+  relatedArticles
+) {
   const category = findCategory(articleLink);
   const filePath = `data/lists/${category}.js`;
   let listFile = fs2.readFileSync(filePath, "utf-8");
@@ -384,20 +373,59 @@ const updateArticleList = (articleLink, firstImage, relatedArticles) => {
   if (articleObjLink !== -1) {
     listFile =
       listFile.slice(0, articleObjLink) +
-      `image: "${firstImage}",` +
+      `localLink: require("${articleHREF}"),` +
+      `image: require("../../assets/${firstImage}"),` +
+      //conditional
       `relatedArticles: ${JSON.stringify(relatedArticles)},` +
       listFile.slice(articleObjLink);
   }
   fs2.writeFileSync(filePath, listFile, "utf-8");
-};
+}
+
+async function scrapeArticle(articleLink, articleHREF) {
+  const modifiedHTML = await adjustSizesAndFixURL(articleLink);
+  const styleElements = await createStyleElement(cheerio2.load(modifiedHTML));
+  const relatedArticles = await getRelatedArticles(modifiedHTML);
+  let cutHTML = await cutArticleHTML(modifiedHTML);
+  cutHTML =
+    `<html>
+  <meta name='viewport' content='width=device-width' charset='UTF-8'>` +
+    styleElements +
+    cutHTML;
+
+  const category = findCategory(articleLink);
+  const link = findLink(articleLink);
+
+  const filePath = `data/articles/${category}/test.html`;
+  fs2.writeFileSync(filePath, cutHTML, "utf-8");
+
+  const firstImage = await downloadImages(cutHTML, category);
+  updateArticleList(articleLink, articleHREF, firstImage, relatedArticles);
+
+  // const pathToArticleComponent = `app/(tabs)/home/[category]/[url]/index.tsx`;
+  // let articleComponent = fs2.readFileSync(pathToArticleComponent, "utf-8");
+
+  // const elseIndex = articleComponent.indexOf("else {");
+  // if (elseIndex !== -1) {
+  //   const closingBraceIndex = articleComponent.indexOf("}", elseIndex);
+  //   if (closingBraceIndex !== -1) {
+  //     articleComponent =
+  //       articleComponent.slice(0, elseIndex) +
+  //       `else if (category === "${category}" && url === "${link}")
+  //       { article = require(\`${articleHREF}\`);
+  //     }` +
+  //       articleComponent.slice(elseIndex);
+  //   }
+  // }
+
+  // fs2.writeFileSync(pathToArticleComponent, articleComponent, "utf-8");
+}
 
 async function scrapeAll(articleListToScrape) {
   for (let i = 0; i < articleListToScrape.length; i++) {
     const articleLink = articleListToScrape[i].link;
     const articleHREF = articleListToScrape[i].href;
-    await cutArticleHTML(articleLink, articleHREF);
+    await scrapeArticle(articleLink, articleHREF);
     // updateArticleList(articleLink);
   }
 }
-
-scrapeAll(articleList);

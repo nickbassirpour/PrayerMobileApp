@@ -15,11 +15,11 @@ const path = require("path");
 let articleList = [
   {
     month: "January",
-    date: "January 1",
-    title: "Circumcision of Our Lord",
+    date: "January 3",
+    title: "St. Genevieve",
     href: "../../../../../data/articles/SOD/j161sd_Circumcision_1-1.html",
-    // link: "https://traditioninaction.org/SOD/j161sd_Circumcision_1-1.html",
-    link: "https://traditioninaction.org/SOD/j065sdStJoseph3-19.htm",
+    // link: "https://traditioninaction.org/SOD/j001sd%20St.%20Genevieve%201-3.htm",
+    link: "https://traditioninaction.org/SOD/j001sd%20St.%20Genevieve%201-3.htm",
   },
   // {
   //   month: "January",

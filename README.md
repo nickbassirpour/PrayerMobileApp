@@ -15,7 +15,7 @@ This essentially takes every possible variation of the HTML that exists on the o
 
 <h3>Downloading images using fs and path</h3>
 
-All of the images of the articles are downloaded and stored locally in the <b>/assets</b> folder as the scraping is in progress. The first image file path is stored in the article object in the <b>/lists</b> folder in order to render the image on the link from the homepage or list of articls page. The other images' file paths are added directly into the HTML of the articles as they are stored locally and will be rendered when the view is clicked. 
+All of the images of the articles are downloaded and stored locally in the <b>/assets</b> folder as the scraping is in progress. The first image file path is stored in the article object in the <b>/lists</b> folder in order to render the image on the link from the homepage or list of articles page. The other images' file paths are added directly into the HTML of the articles as they are stored locally and will be rendered when the view is clicked. 
 
 <h3>The SRP</h3>
 
